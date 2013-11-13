@@ -59,4 +59,32 @@ class MyScene < SKScene
   def degrees_to_radians(degrees)
     radians = degrees * Math::PI / 180
   end
+
+  def bound_layer_position(new_position)
+    x = [new_position.x, 0].min
+    x = [x, -@background.size.width + self.size.width].max
+    y = self.position.y
+    CGPointMake(x, y)
+  end
+
+  def pan_for_translation(translation)
+    position = @selected_node.position
+    if @selected_node.name == ANIMAL_NODE_NAME
+      @selected_node.setPosition(CGPointMake(position.x + translation.x, position.y + translation.y))
+    else
+      new_position = CGPointMake(position.x + translation.x, position.y + translation.y)
+      @background.setPosition(self.bound_layer_position(new_position))
+    end
+  end
+
+  def touchesMoved(touches, withEvent: event)
+    touch = touches.anyObject
+    position_in_scene = touch.locationInNode(self)
+    previous_position = touch.previousLocationInNode(self)
+
+    translation = CGPointMake(position_in_scene.x - previous_position.x, position_in_scene.y - previous_position.y)
+
+    self.pan_for_translation(translation)
+  end
+
 end
