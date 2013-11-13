@@ -25,11 +25,11 @@ class MyScene < SKScene
     self
   end
 
-  def touchesBegan(touches, withEvent: event)
-    touch = touches.anyObject
-    position_in_scene = touch.locationInNode(self)
-    self.select_node_for_touch(position_in_scene)
-  end
+  # def touchesBegan(touches, withEvent: event)
+  #   touch = touches.anyObject
+  #   position_in_scene = touch.locationInNode(self)
+  #   self.select_node_for_touch(position_in_scene)
+  # end
 
   def update(current_time)
     # Called before each frame is rendered
@@ -77,14 +77,47 @@ class MyScene < SKScene
     end
   end
 
-  def touchesMoved(touches, withEvent: event)
-    touch = touches.anyObject
-    position_in_scene = touch.locationInNode(self)
-    previous_position = touch.previousLocationInNode(self)
+  # def touchesMoved(touches, withEvent: event)
+  #   touch = touches.anyObject
+  #   position_in_scene = touch.locationInNode(self)
+  #   previous_position = touch.previousLocationInNode(self)
 
-    translation = CGPointMake(position_in_scene.x - previous_position.x, position_in_scene.y - previous_position.y)
+  #   translation = CGPointMake(position_in_scene.x - previous_position.x, position_in_scene.y - previous_position.y)
 
-    self.pan_for_translation(translation)
+  #   self.pan_for_translation(translation)
+  # end
+
+  def didMoveToView(view)
+    gesture_recognizer = UIPanGestureRecognizer.alloc.initWithTarget(self, action: 'handle_pan_from:')
+    self.view.addGestureRecognizer(gesture_recognizer)
+  end
+
+  def handle_pan_from(recognizer)
+    if recognizer.state == UIGestureRecognizerStateBegan
+      touch_location = recognizer.locationInView(recognizer.view)
+      touch_location = self.convertPointFromView(touch_location)
+      self.select_node_for_touch(touch_location)
+    elsif recognizer.state == UIGestureRecognizerStateChanged
+      translation = recognizer.translationInView(recognizer.view)
+      translation = CGPointMake(translation.x, -translation.y)
+      self.pan_for_translation(translation)
+      recognizer.setTranslation(CGPointZero, inView: recognizer.view)
+    elsif recognizer.state == UIGestureRecognizerStateEnded
+      unless @selected_node.name == ANIMAL_NODE_NAME
+        scroll_duration = 0.2
+        velocity = recognizer.velocityInView(recognizer.view)
+        position = @selected_node.position
+        point = CGPointMake(velocity.x * scroll_duration, velocity.y * scroll_duration)
+
+        new_position = CGPointMake(position.x + point.x, position.y + point.y)
+        new_position = self.bound_layer_position(new_position)
+        @selected_node.removeAllActions
+
+        move_to = SKAction.moveTo(new_position, duration: scroll_duration)
+        move_to.setTimingMode(SKActionTimingEaseOut)
+        @selected_node.runAction(move_to)
+      end
+    end
   end
 
 end
